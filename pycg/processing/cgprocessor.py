@@ -269,6 +269,9 @@ class CallGraphProcessor(ProcessingBase):
 
         self.last_called_names = names
         for pointer in names:
+            pointer_init = "%s.__init__" % pointer
+            if pointer_init in self.scope_manager.get_scopes().keys():
+                pointer = pointer_init
             pointer_def = self.def_manager.get(pointer)
             if not pointer_def or not isinstance(pointer_def, Definition):
                 continue
