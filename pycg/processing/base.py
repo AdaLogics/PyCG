@@ -245,7 +245,7 @@ class ProcessingBase(ast.NodeVisitor):
                 elif called_def.is_ext_def():
                     return_ns_set = called_def.get_name_pointer().get()
                     if return_ns_set:
-                        return_ns = return_ns_set.pop()
+                        return_ns = next(iter(return_ns_set))
                 defi = self.def_manager.get(return_ns)
                 if defi:
                     return_defs.append(defi)
