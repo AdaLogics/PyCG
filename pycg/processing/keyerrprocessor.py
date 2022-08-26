@@ -21,15 +21,27 @@
 import os
 import ast
 import re
+import logging
 
 from pycg import utils
 from pycg.processing.base import ProcessingBase
 
+logging.basicConfig(
+    format='%(levelname)-8s %(asctime)s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S',
+    level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
+
 class KeyErrProcessor(ProcessingBase):
     def __init__(self, filename, modname, import_manager,
             scope_manager, def_manager, class_manager, key_errs, modules_analyzed=None):
+        logger.debug(
+            "In KeyErrProcessor.__init..: filename: %s; mod_name: %s; analyzed module: %s"
+            % (filename, modname, modules_analyzed)
+        )
         super().__init__(filename, modname, modules_analyzed)
-        print("K1")
         # parent directory of file
         self.parent_dir = os.path.dirname(filename)
 
@@ -41,9 +53,10 @@ class KeyErrProcessor(ProcessingBase):
 
         self.closured = self.def_manager.transitive_closure()
         self.state = "keyerr"
+        logger.debug("Exit KeyErrProcessor.__init__")
 
     def visit_Subscript(self, node):
-        print("K2")
+        logger.debug("In KeyErrProcessor.visit_Subscript")
         self.visit(node.value)
         self.visit(node.slice)
         names = self.retrieve_subscript_names(node)
@@ -60,29 +73,34 @@ class KeyErrProcessor(ProcessingBase):
                     lineno=node.lineno,
                     namespace=".".join(splitted[:-1]),
                     key=splitted[-1])
+        logger.debug("Exit KeyErrProcessor.visit_Subscript")
 
     def is_subscriptable(self, name):
-        print("K3")
+        logger.debug("In KeyErrProcessor.is_subscriptable")
         if re.match(r".*<dict[0-9]+>.*", name):
+            logger.debug("Exit KeyErrProcessor.is_subscriptable")
             return True
-
+        logger.debug("Exit KeyErrProcessor.is_subscriptable")
         return False
 
     def analyze_submodules(self):
-        print("K4")
+        logger.debug("In KeyErrProcessor.analyze_submodules")
         super().analyze_submodules(KeyErrProcessor, self.import_manager,
                 self.scope_manager, self.def_manager, self.class_manager,
                 self.key_errs, modules_analyzed=self.get_modules_analyzed())
+        logger.debug("Exit KeyErrProcessor.analyze_submodules")
 
     def analyze(self):
-        print("K5")
+        logger.debug("In KeyErrProcessor.analyze")
         self.visit(ast.parse(self.contents, self.filename))
         self.analyze_submodules()
+        logger.debug("Exit KeyErrProcessor.analyze")
 
     def visit_Lambda(self, node):
-        print("K6")
+        logger.debug("In KeyErrProcessor.visit_Lambda")
         counter = self.scope_manager.get_scope(self.current_ns).inc_lambda_counter()
         lambda_name = utils.get_lambda_name(counter)
         lambda_fullns = utils.join_ns(self.current_ns, lambda_name)
 
         super().visit_Lambda(node, lambda_name)
+        logger.debug("Exit KeyErrProcessor.visit_Lambda")
