@@ -18,13 +18,23 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import logging
+
+logging.basicConfig(
+    format='%(levelname)-8s %(asctime)s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S',
+    level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
+
 class ModuleManager:
     def __init__(self):
         self.internal = {}
         self.external = {}
 
     def create(self, name, fname, external=False):
-        print("M1")
+        logger.debug("In ModuleManager.create")
         mod = Module(name, fname)
         if external:
             self.external[name] = mod
@@ -33,41 +43,41 @@ class ModuleManager:
         return mod
 
     def get(self, name):
-        print("M2")
+        logger.debug("In ModuleManager.get")
         if name in self.internal:
             return self.internal[name]
         if name in self.external:
             return self.external[name]
 
     def get_internal_modules(self):
-        print("M3")
+        logger.debug("In ModuleManager.get_internal_modules")
         return self.internal
 
     def get_external_modules(self):
-        print("M4")
+        logger.debug("In ModuleManager.get_external_modules")
         return self.external
 
 class Module:
     def __init__(self, name, filename):
-        print("M5")
+        logger.debug("In Module.__init__")
         self.name = name
         self.filename = filename
         self.methods = dict()
 
     def get_name(self):
-        print("M6")
+        logger.debug("In Module.get_name")
         return self.name
 
     def get_filename(self):
-        print("M7")
+        logger.debug("In Module.get_filename")
         return self.filename
 
     def get_methods(self):
-        print("M8")
+        logger.debug("In Module.get_methods")
         return self.methods
 
     def add_method(self, method, first=None, last=None):
-        print("M9")
+        logger.debug("In Module.add_method")
         if not self.methods.get(method, None):
             self.methods[method] = dict(
                     name=method,

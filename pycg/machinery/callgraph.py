@@ -18,6 +18,16 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import logging
+
+logging.basicConfig(
+    format='%(levelname)-8s %(asctime)s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S',
+    level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
+
 class CallGraph(object):
     def __init__(self):
         self.cg = {}
@@ -49,7 +59,7 @@ class CallGraph(object):
         self.add_node(dest)
         self.cg[src].add(dest)
 
-        print("Adding edge")
+        logger.debug("Adding edge")
         self.cg_extended[src]['dsts'].append(
             {
                 "dst": dest,
@@ -58,13 +68,12 @@ class CallGraph(object):
                 "ext_mod" : ext_mod
             }
         )
-        print(self.cg_extended[src])
+        logger.debug(self.cg_extended[src])
 
     def get(self):
         return self.cg
 
     def get_extended(self):
-        #print("Extended cg: %s"%(str(self.cg_extended)))
         return self.cg_extended
 
     def get_edges(self):
