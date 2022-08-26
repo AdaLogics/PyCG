@@ -20,17 +20,30 @@
 #
 import os
 import ast
+import logging
 
 from pycg import utils
 from pycg.processing.base import ProcessingBase
 from pycg.machinery.callgraph import CallGraph
 from pycg.machinery.definitions import Definition
 
+logging.basicConfig(
+    format='%(levelname)-8s %(asctime)s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S',
+    level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
+
 class CallGraphProcessor(ProcessingBase):
     def __init__(self, filename, modname, import_manager,
             scope_manager, def_manager, class_manager,
             module_manager, call_graph=None, modules_analyzed=None):
-        print("C1")
+        logger.debug(
+            "In CallGraphProcessor.__init__: filename: %s; mod_name: %s; "
+            " call_graph: %s; analyzed modules: %s"
+            %(filename, modname, str(call_graph), str(modules_analyzed))
+        )
         super().__init__(filename, modname, modules_analyzed)
         # parent directory of file
         self.parent_dir = os.path.dirname(filename)
@@ -45,14 +58,16 @@ class CallGraphProcessor(ProcessingBase):
 
         self.closured = self.def_manager.transitive_closure()
 
+        logger.debug("Exit CallGraphProcessor.__init__")
+
     def visit_Module(self, node):
-        print("C1")
-        print("Visiting module %s"%(self.modname))
+        logger.debug("In CallGraphProcessor.visit_Module")
         self.call_graph.add_node(self.modname, self.modname)
         super().visit_Module(node)
+        logger.debug("Exit CallGraphProcessor.visit_Module")
 
     def visit_For(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.visit_For")
         self.visit(node.iter)
         self.visit(node.target)
         # assign target.id to the return value of __next__ of node.iter.it
@@ -71,9 +86,10 @@ class CallGraphProcessor(ProcessingBase):
                     self.call_graph.add_edge(self.current_method, next_ns, mod=self.modname)
 
         super().visit_For(node)
+        logger.debug("Exit CallGraphProcessor.visit_For")
 
     def visit_Lambda(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.visit_Lambda")
         counter = self.scope_manager.get_scope(self.current_ns).inc_lambda_counter()
         lambda_name = utils.get_lambda_name(counter)
         lambda_fullns = utils.join_ns(self.current_ns, lambda_name)
@@ -81,10 +97,12 @@ class CallGraphProcessor(ProcessingBase):
         self.call_graph.add_node(lambda_fullns, self.modname)
 
         super().visit_Lambda(node, lambda_name)
+        logger.debug("Exit CallGraphProcessor.visit_Lambda")
 
     def visit_Raise(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.visit_Raise")
         if not node.exc:
+            logger.debug("Exit CallGraphProcessor.visit_Raise: No node exception")
             return
         self.visit(node.exc)
         decoded = self.decode_node(node.exc)
@@ -100,13 +118,15 @@ class CallGraphProcessor(ProcessingBase):
                         self.call_graph.add_edge(self.current_method, ns, mod=self.modname)
                 if pointer_def.is_ext_def():
                     self.call_graph.add_edge(self.current_method, name, mod=self.modname)
+        logger.debug("Exit CallGraphProcessor.visit_Raise")
 
     def visit_AsyncFunctionDef(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.visit_AsyncFunctionDef")
         self.visit_FunctionDef(node)
+        logger.debug("Exit CallGraphProcessor.visit_AsyncFunctionDef")
 
     def visit_FunctionDef(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.visit_AsyncFunctionDef")
         for decorator in node.decorator_list:
             self.visit(decorator)
             decoded = self.decode_node(decorator)
@@ -143,16 +163,12 @@ class CallGraphProcessor(ProcessingBase):
         self.call_graph.cg_extended[utils.join_ns(self.current_ns, node.name)]['meta']['exprCount'] = 0
         self.current_node_name = node.name
 
-
         super().visit_FunctionDef(node)
+        logger.debug("Exit CallGraphProcessor.visit_AsyncFunctionDef")
 
     def visit_If(self, node):
-        print("C1")
-        #print("TTT: %s%s"%(str(self.current_ns), str(self.current_node_name)))
-        #FTS="%s%s"%(str(self.current_ns), str(self.current_node_name))
-        FTS="%s"%(str(self.current_ns))
-        print("Checking: %s"%(FTS))
-        print("Checking2: %s"%(utils.join_ns(self.current_ns, self.current_node_name)))
+        logger.debug("In CallGraphProcessor.visit_If")
+        FTS="%s"%(str(self.current_ns)) 
 
         if (
             self.current_node_name != None and
@@ -164,10 +180,10 @@ class CallGraphProcessor(ProcessingBase):
                 self.call_graph.cg_extended[FTS]['meta']['ifCount'] = 1
 
         self.generic_visit(node)
+        logger.debug("Exit CallGraphProcessor.visit_If")
 
     def visit_Expr(self, node):
-        print("C1")
-        #print("Visiting expr")
+        logger.debug("In CallGraphProcessor.visit_Expr")
         FTS="%s"%(str(self.current_ns))
         if FTS in self.call_graph.cg_extended:
             try:
@@ -176,13 +192,20 @@ class CallGraphProcessor(ProcessingBase):
                 self.call_graph.cg_extended[FTS]['meta']['exprCount'] = 1
         self.generic_visit(node)
     #    #super().visit_Expr(node)
+        logger.debug("Exit CallGraphProcessor.visit_Expr")
 
     def visit_Call(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.visit_Call")
         def create_ext_edge(name, ext_modname, e_lineno=-1, mod=""):
+            logger.debug(
+                "In CallGraphProcessor.visit_Call.create_ext_edge: "
+                "name: %s; external_mod_name: %s; external_line_no: %s; mod: %s"
+                % (name, ext_modname, e_lineno, mod)
+            )
             self.add_ext_mod_node(name)
             self.call_graph.add_node(name, ext_modname)
             self.call_graph.add_edge(self.current_method, name, lineno=e_lineno, mod=mod, ext_mod=ext_modname)
+            logger.debug("Exit CallGraphProcessor.visit_Call.create_ext_edge")
 
         # First visit the child function so that on the case of
         #       func()()()
@@ -196,76 +219,51 @@ class CallGraphProcessor(ProcessingBase):
         self.visit(node.func)
 
         names = self.retrieve_call_names(node)
-        print("Iterating node with line number2: %d"%(node.lineno))
-        try:
-            print("- %s"%(node.func.id))
-            print("- Arguments: %s"%(str(node.args)))
-        except:
-            try:
-                print("- %s.%s"%(node.func.value.id, node.func.attr))
-                print("%s"%(str(node.args)))
-            except:
-                None
-            for elem in node.args:
-                #print("%s"%(str(elem)))
-                try:
-                    print("%s"%(str(elem.id)))
-                except:
-                    None
-            None
-        print("D1")
+        logger.info("In CallGraphProcessor.visit_Call: Iterating node with line number: %d" % node.lineno)
+
         # Go through the arguments
+        logger.input("In CallGraphProcessor.visit_Call: Going through arguments")
         try:
             if ( isinstance(node.func, ast.Attribute) and
-                 node.func.value.id == "atheris" and 
+                 node.func.value.id == "atheris" and
                  node.func.attr == "Setup"
             ):
                 # Get the target function
                 target_func = node.args[1].id
                 self.call_graph.add_entrypoint(target_func, self.modname)
-                print("We have the set up function here")
-                print("Target func: %s"%(target_func))
-        except:
-            None
+                logger.info("Target func: %s"%(target_func))
+        except Exception as e:
+            logger.warn("In CallGraphProcessor.visit_Call: Exception: %s" % str(e))
+
+        logger.debug("In CallGraphProcessor.visit_Call: Main process of line number: %d" % node.lineno)
         if not names:
-            print("D2")
+            logger.debug("In CallGraphProcessor.visit_Call: No name definition found: Fail safe logic")
             print(str(node))
             if isinstance(node.func, ast.Attribute) and self.has_ext_parent(node.func):
-                print("D3")
                 # TODO: This doesn't work for cases where there is an assignment of an attribute
                 # i.e. import os; lala = os.path; lala.dirname()
                 for name in self.get_full_attr_names(node.func):
                     ext_modname = name.split(".")[0]
                     create_ext_edge(name, ext_modname, node.lineno, self.modname)
             elif getattr(node.func, "id", None) and self.is_builtin(node.func.id):
-                print("D4")
                 name = utils.join_ns(utils.constants.BUILTIN_NAME, node.func.id)
                 create_ext_edge(name, utils.constants.BUILTIN_NAME, node.lineno, self.modname)
             elif isinstance(node.func, ast.Attribute):
-                print("It is actually an attribute")
-                print(str(node.func.value))
-                print(ast.dump(node))
-                print("-----------------")
-                print(ast.dump(node.func.value))
-                print("-----------------")
                 try:
                     a1 = node.func.value.id
                     # a2 = node.func.value.attr # Not sure the usage for a2, so comment it out temporary to avoid bug
                     a3 = node.func.attr
-                    # print("Got it: %s -- %s -- %s"%(a1, a2, a3)) 
-                    print("Got it: %s -- %s"%(a1, a3)) 
+                    logger.debug("In CallGraphProcessor.visit_Call: Retrieved function call name: %s.%s" %(a1, a3))
                     # Skip selfs for now. Down the line we probably want to fix this as well, but
                     # will wait with doing this. Most likely a larger rewrite is needed once
                     # I fully grasp what we need.
                     if a1 != "self":
-                        # name = "%s.%s.%s"%(a1,a2,a3)
                         name = "%s.%s"%(a1,a3)
                         create_ext_edge(name, utils.constants.BUILTIN_NAME, node.lineno, self.modname)
-                except:
-                    print("Did not get it")
-            print("D2.1")
+                except Exception as e:
+                    logger.error("In CallGraphProcessor.visit_Call: Exception: %s" % str(e))
+            logger.debug("Exit CallGraphProcessor.visit_Call: No name definition found: Fail safe logic")
             return
-        print("D6")
 
         self.last_called_names = names
         for pointer in names:
@@ -294,22 +292,24 @@ class CallGraphProcessor(ProcessingBase):
                 init_ns = self.find_cls_fun_ns(pointer, utils.constants.CLS_INIT)
 
                 for ns in init_ns:
-                    print("D7")
                     self.call_graph.add_edge(self.current_method, ns, lineno=node.lineno, mod=self.modname)
+        logger.debug("Exit CallGraphProcessor.visit_Call")
 
     def analyze_submodules(self):
-        print("C1")
+        logger.debug("In CallGraphProcessor.analyze_submodules")
         super().analyze_submodules(CallGraphProcessor, self.import_manager,
                 self.scope_manager, self.def_manager, self.class_manager, self.module_manager,
                 call_graph=self.call_graph, modules_analyzed=self.get_modules_analyzed())
+        logger.debug("Exit CallGraphProcessor.analyze_submodules")
 
     def analyze(self):
-        print("C1")
+        logger.debug("In CallGraphProcessor.analyze")
         self.visit(ast.parse(self.contents, self.filename))
         self.analyze_submodules()
+        logger.debug("Exit CallGraphProcessor.analyze")
 
     def get_all_reachable_functions(self):
-        print("C1")
+        logger.debug("In CallGraphProcessor.get_all_reachable_functions")
         reachable = set()
         names = set()
         current_scope = self.scope_manager.get_scope(self.current_ns)
@@ -322,11 +322,13 @@ class CallGraphProcessor(ProcessingBase):
                     names.add(name)
             current_scope = current_scope.parent
 
+        logger.debug("Exit CallGraphProcessor.get_all_reachable_functions")
         return reachable
 
     def has_ext_parent(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.has_ext_parent")
         if not isinstance(node, ast.Attribute):
+            logger.debug("Exit CallGraphProcessor.has_ext_parent: Not Attribute node")
             return False
 
         while isinstance(node, ast.Attribute):
@@ -335,12 +337,14 @@ class CallGraphProcessor(ProcessingBase):
                 for name in self.closured.get(parent, []):
                     defi = self.def_manager.get(name)
                     if defi and defi.is_ext_def():
+                        logger.debug("Exit CallGraphProcessor.has_ext_parent: External parent found")
                         return True
             node = node.value
+        logger.debug("Exit CallGraphProcessor.has_ext_parent: No external parent")
         return False
 
     def get_full_attr_names(self, node):
-        print("C1")
+        logger.debug("In CallGraphProcessor.get_full_attr_names")
         name = ""
         while isinstance(node, ast.Attribute):
             if not name:
@@ -351,6 +355,7 @@ class CallGraphProcessor(ProcessingBase):
 
         names = []
         if getattr(node, "id", None) == None:
+            logger.debug("Exit CallGraphProcessor.get_full_attr_names: No ID attribute")
             return names
 
         defi = self.scope_manager.get_def(self.current_ns, node.id)
@@ -358,8 +363,8 @@ class CallGraphProcessor(ProcessingBase):
             for id in self.closured.get(defi.get_ns()):
                 names.append(id + "." + name)
 
+        logger.debug("Exit CallGraphProcessor.get_full_attr_names")
         return names
 
     def is_builtin(self, name):
-        print("C1")
         return name in __builtins__
