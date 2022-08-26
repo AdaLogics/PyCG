@@ -20,6 +20,7 @@
 #
 import os
 import ast
+import logging
 
 from pycg.processing.preprocessor import PreProcessor
 from pycg.processing.postprocessor import PostProcessor
@@ -34,6 +35,13 @@ from pycg.machinery.callgraph import CallGraph
 from pycg.machinery.key_err import KeyErrors
 from pycg.machinery.modules import ModuleManager
 from pycg import utils
+
+logging.basicConfig(
+    format='%(levelname)-8s %(asctime)s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S',
+    level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
 
 class CallGraphGenerator(object):
     def __init__(self, entry_points, package, max_iter, operation):
@@ -139,18 +147,18 @@ class CallGraphGenerator(object):
                 input_pkg = os.path.dirname(input_file)
 
             if not input_mod in modules_analyzed:
+                logger.info("Running analysis on: %s"%(input_file))
+                logger.info("Input mod: %s"%(input_mod))
+                logger.info("Input pkg: %s"%(input_pkg))
                 if install_hooks:
-                    print("Installing hooks")
+                    logger.info("Installing hooks")
                     self.import_manager.set_pkg(input_pkg)
                     self.import_manager.install_hooks()
                 else:
-                    print("Not installing hooks")
-                print("Running analysis on: %s"%(input_file))
-                print("Input mod: %s"%(input_mod))
-                print("Input pkg: %s"%(input_pkg))
+                    logger.info("Not installing hooks")
                 processor = cls(input_file, input_mod,
                                 modules_analyzed=modules_analyzed, *args, **kwargs)
-                print("Done analysis-123")
+                logger.info("Done analysis: %s"%(input_file))
                 processor.analyze()
                 modules_analyzed = modules_analyzed.union(processor.get_modules_analyzed())
 
