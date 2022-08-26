@@ -94,11 +94,11 @@ class CallGraphProcessor(ProcessingBase):
             names = self.closured.get(d.get_ns(), [])
             for name in names:
                 pointer_def = self.def_manager.get(name)
-                if pointer_def.get_type() == utils.constants.CLS_DEF:
+                if pointer_def.is_class_def():
                     init_ns = self.find_cls_fun_ns(name, utils.constants.CLS_INIT)
                     for ns in init_ns:
                         self.call_graph.add_edge(self.current_method, ns, mod=self.modname)
-                if pointer_def.get_type() == utils.constants.EXT_DEF:
+                if pointer_def.is_ext_def():
                     self.call_graph.add_edge(self.current_method, name, mod=self.modname)
 
     def visit_AsyncFunctionDef(self, node):
@@ -276,7 +276,7 @@ class CallGraphProcessor(ProcessingBase):
             if not pointer_def or not isinstance(pointer_def, Definition):
                 continue
             if pointer_def.is_callable():
-                if pointer_def.get_type() == utils.constants.EXT_DEF:
+                if pointer_def.is_ext_def():
                     ext_modname = pointer.split(".")[0]
                     create_ext_edge(pointer, ext_modname, node.lineno, self.modname)
                     continue
@@ -290,7 +290,7 @@ class CallGraphProcessor(ProcessingBase):
                 #        if self.def_manager.get(dec_name).get_type() == utils.constants.FUN_DEF:
                 #            self.call_graph.add_edge(self.current_ns, dec_name)
 
-            if pointer_def.get_type() == utils.constants.CLS_DEF:
+            if pointer_def.is_class_def():
                 init_ns = self.find_cls_fun_ns(pointer, utils.constants.CLS_INIT)
 
                 for ns in init_ns:

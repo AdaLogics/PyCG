@@ -53,7 +53,7 @@ class PostProcessor(ProcessingBase):
             defi = self.def_manager.get(name)
             if not defi:
                 continue
-            if defi.get_type() == utils.constants.CLS_DEF:
+            if defi.is_class_def():
                 self.update_parent_classes(defi)
                 defi = self.def_manager.get(utils.join_ns(defi.get_ns(), utils.constants.CLS_INIT))
                 if not defi:

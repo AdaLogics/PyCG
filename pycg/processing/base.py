@@ -366,13 +366,13 @@ class ProcessingBase(ast.NodeVisitor):
                 defi = self.def_manager.get(name)
                 if not defi:
                     continue
-                if defi.get_type() == utils.constants.CLS_DEF:
+                if defi.is_class_def():
                     cls_names = self.find_cls_fun_ns(defi.get_ns(), node.attr)
                     if cls_names:
                         names = names.union(cls_names)
-                if defi.get_type() in [utils.constants.FUN_DEF, utils.constants.MOD_DEF]:
+                if defi.is_function_def() or defi.is_module_def():
                     names.add(utils.join_ns(name, node.attr))
-                if defi.get_type() == utils.constants.EXT_DEF:
+                if defi.is_ext_def():
                     # HACK: extenral attributes can lead to infinite loops
                     # Identify them here
                     if node.attr in name:
@@ -550,7 +550,7 @@ class ProcessingBase(ast.NodeVisitor):
                 return names
 
             parent = self.def_manager.get(item)
-            if parent and parent.get_type() == utils.constants.EXT_DEF:
+            if parent and parent.is_ext_def():
                 ext_names.add(ns)
 
         for name in ext_names:

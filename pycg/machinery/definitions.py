@@ -200,6 +200,12 @@ class Definition(object):
     def is_function_def(self):
         return self.def_type == utils.constants.FUN_DEF
 
+    def is_module_def(self):
+        return self.def_type == utils.constants.MOD_DEF
+
+    def is_name_def(self):
+        return self.def_type == utils.constants.NAME_DEF
+
     def is_class_def(self):
         return self.def_type == utils.constants.CLS_DEF
 

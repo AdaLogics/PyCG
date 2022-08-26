@@ -252,7 +252,7 @@ class PreProcessor(ProcessingBase):
                 if isinstance(decorator, ast.Name) and decorator.id == utils.constants.STATIC_METHOD:
                     is_static_method = True
 
-        if current_def.get_type() == utils.constants.CLS_DEF and not is_static_method and node.args.args:
+        if current_def.is_class_def() and not is_static_method and node.args.args:
             arg_ns = utils.join_ns(fn_def.get_ns(), node.args.args[0].arg)
             arg_def = self.def_manager.get(arg_ns)
             if not arg_def:
@@ -347,7 +347,7 @@ class PreProcessor(ProcessingBase):
         if not defi:
             return
 
-        if defi.get_type() == utils.constants.CLS_DEF:
+        if defi.is_class_def():
             defi = self.def_manager.get(utils.join_ns(defi.get_ns(), utils.constants.CLS_INIT))
             if not defi:
                 return
