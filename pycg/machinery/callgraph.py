@@ -43,8 +43,10 @@ class CallGraph(object):
             raise CallGraphError("Only string node names allowed")
         if not name:
             raise CallGraphError("Empty node name")
-
+        
+        #logger.info(f"AN: {name} -- mod: {modname}")
         if not name in self.cg:
+            #logger.info(f"AN1: {name} -- mod: {modname}")
             self.cg[name] = set()
             self.cg_extended[name] = {
                 'dsts' : [],
@@ -53,16 +55,28 @@ class CallGraph(object):
                 }
             }
             self.modnames[name] = modname
+        #else:
+            #logger.info(f"AN1.1: {name} --- {self.cg[name]}")
 
         if name in self.cg and not self.modnames[name]:
+            #logger.info(f"AN3: {name} -- mod: {modname}")
             self.modnames[name] = modname
+        else:
+            #logger.info(f"AN4: {self.modnames[name]}")
+            #logger.info(f"AN5: {self.cg_extended[name]}")
+            if not self.cg_extended[name]['meta']['modname']:
+                #logger.info("AN6")
+                self.cg_extended[name]['meta']['modname'] = modname
+            #else:
+                #logger.info("AN7")
 
     def add_edge(self, src, dest, lineno=-1, mod="", ext_mod=""):
-        self.add_node(src)
+        logger.info(f"Adding edge: {src} == {mod} :::::::: {dest} == {ext_mod}") 
+        self.add_node(src, mod)
         self.add_node(dest)
         self.cg[src].add(dest)
 
-        logger.debug("Adding edge")
+        #logger.debug("Adding edge")
         self.cg_extended[src]['dsts'].append(
             {
                 "dst": dest,
