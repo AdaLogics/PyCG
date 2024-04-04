@@ -189,13 +189,14 @@ class DefinitionManager(object):
                 break
 
 
-class Definition(object):
+class Definition:
+    __slots__ = ['fullns', 'points_to', 'def_type', 'decorator_names']
     types = [
         utils.constants.FUN_DEF,
         utils.constants.MOD_DEF,
         utils.constants.NAME_DEF,
         utils.constants.CLS_DEF,
-        utils.constants.EXT_DEF
+        utils.constants.EXT_DEF,
     ]
 
     def __init__(self, fullns, def_type):
@@ -234,7 +235,7 @@ class Definition(object):
         return self.points_to["name"]
 
     def get_name(self):
-        return self.fullns.split(".")[-1]
+        return self.fullns.rpartition(".")[-1]
 
     def get_ns(self):
         return self.fullns

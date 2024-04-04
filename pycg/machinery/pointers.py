@@ -23,7 +23,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class Pointer(object):
+class Pointer:
     def __init__(self):
         #logger.debug("In Pointer.__ini__")
         self.values = set()
@@ -45,6 +45,7 @@ class Pointer(object):
         self.values = self.values.union(pointer.values)
 
 class LiteralPointer(Pointer):
+    __slots__ = ["values"]
     STR_LIT = "STRING"
     INT_LIT = "INTEGER"
     UNK_LIT = "UNKNOWN"
@@ -59,7 +60,9 @@ class LiteralPointer(Pointer):
         else:
             self.values.add(self.UNK_LIT)
 
+
 class NamePointer(Pointer):
+    __slots__ = ["pos_to_name", "name_to_pos", "args", "values"]
     def __init__(self):
         #logger.debug("In NamePointer.__init__")
         super().__init__()
