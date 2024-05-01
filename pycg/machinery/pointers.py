@@ -19,12 +19,13 @@
 # under the License.
 #
 import logging
+from typing import Dict, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class Pointer:
-    def __init__(self):
+    def __init__(self) -> None:
         #logger.debug("In Pointer.__ini__")
         self.values = set()
 
@@ -32,7 +33,7 @@ class Pointer:
         #logger.debug("In Pointer.add")
         self.values.add(item)
 
-    def add_set(self, s):
+    def add_set(self, s: set):
         #logger.debug("In Pointer.add_set")
         self.values.update(s)
 
@@ -43,6 +44,7 @@ class Pointer:
     def merge(self, pointer):
         #logger.debug("In Pointer.merge")
         self.values.update(pointer.values)
+
 
 class LiteralPointer(Pointer):
     __slots__ = ["values"]
@@ -63,15 +65,16 @@ class LiteralPointer(Pointer):
 
 class NamePointer(Pointer):
     __slots__ = ["pos_to_name", "name_to_pos", "args", "values"]
-    def __init__(self):
-        #logger.debug("In NamePointer.__init__")
-        super().__init__()
-        self.pos_to_name = {}
-        self.name_to_pos = {}
-        self.args = {}
 
-    def _sanitize_pos(self, pos):
-        #logger.debug("In NamePointer._sanitize_pos")
+    def __init__(self) -> None:
+        # logger.debug("In NamePointer.__init__")
+        super().__init__()
+        self.pos_to_name: Dict[int, str] = {}
+        self.name_to_pos: Dict[str, int] = {}
+        self.args: Dict[str, Set[str]] = {}
+
+    def _sanitize_pos(self, pos) -> int:
+        # logger.debug("In NamePointer._sanitize_pos")
         try:
             int(pos)
         except ValueError:
@@ -79,14 +82,14 @@ class NamePointer(Pointer):
 
         return pos
 
-    def get_or_create(self, name):
-        #logger.debug("In NamePointer.get_or_create")
+    def get_or_create(self, name: str) -> Set[str]:
+        # logger.debug("In NamePointer.get_or_create")
         if not name in self.args:
             self.args[name] = set()
         return self.args[name]
 
-    def add_arg(self, name, item):
-        #logger.debug("In NamePointer.add_arg")
+    def add_arg(self, name: str, item) -> None:
+        # logger.debug("In NamePointer.add_arg")
         arg = self.get_or_create(name)
         if isinstance(item, str):
             self.args[name].add(item)
@@ -95,8 +98,8 @@ class NamePointer(Pointer):
         else:
             raise Exception()
 
-    def add_lit_arg(self, name, item):
-        #logger.debug("In NamePointer.add_lit_arg")
+    def add_lit_arg(self, name: str, item) -> None:
+        # logger.debug("In NamePointer.add_lit_arg")
         arg = self.get_or_create(name)
         if isinstance(item, str):
             arg.add(LiteralPointer.STR_LIT)
@@ -105,8 +108,8 @@ class NamePointer(Pointer):
         else:
             arg.add(LiteralPointer.UNK_LIT)
 
-    def add_pos_arg(self, pos, name, item):
-        #logger.debug("In NamePointer.add_pos_arg")
+    def add_pos_arg(self, pos, name: Optional[str], item):
+        # logger.debug("In NamePointer.add_pos_arg")
         pos = self._sanitize_pos(pos)
         if not name:
             if self.pos_to_name.get(pos, None):
@@ -118,12 +121,12 @@ class NamePointer(Pointer):
 
         self.add_arg(name, item)
 
-    def add_name_arg(self, name, item):
-        #logger.debug("In NamePointer.add_name_arg")
+    def add_name_arg(self, name: str, item):
+        # logger.debug("In NamePointer.add_name_arg")
         self.add_arg(name, item)
 
-    def add_pos_lit_arg(self, pos, name, item):
-        #logger.debug("In NamePointer.add_pos_lit_arg")
+    def add_pos_lit_arg(self, pos, name: str, item):
+        # logger.debug("In NamePointer.add_pos_lit_arg")
         pos = self._sanitize_pos(pos)
         if not name:
             name = str(pos)
@@ -153,23 +156,26 @@ class NamePointer(Pointer):
             args[pos] = self.args[name]
         return args
 
-    def get_pos_of_name(self, name):
-        #logger.debug("In NamePointer.get_pos_of_name")
+    def get_pos_of_name(self, name) -> Optional[int]:
+        # logger.debug("In NamePointer.get_pos_of_name")
         if name in self.name_to_pos:
             return self.name_to_pos[name]
+        else:
+            return None
 
-    def get_pos_names(self):
-        #logger.debug("In NamePointer.get_pos_names")
+    def get_pos_names(self) -> Dict[int, str]:
+        # logger.debug("In NamePointer.get_pos_names")
         return self.pos_to_name
 
-    def merge(self, pointer):
-        #logger.debug("In NamePointer.merge")
+    def merge(self, pointer) -> None:
+        # logger.debug("In NamePointer.merge")
         super().merge(pointer)
         if hasattr(pointer, "get_pos_names"):
             for pos, name in pointer.get_pos_names().items():
                 self.pos_to_name[pos] = name
             for name, arg in pointer.get_args().items():
                 self.add_arg(name, arg)
+
 
 class PointerError(Exception):
     pass

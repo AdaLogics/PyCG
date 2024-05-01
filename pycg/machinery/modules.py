@@ -19,16 +19,19 @@
 # under the License.
 #
 import logging
+from typing import Dict, Optional, Union
 
 logger = logging.getLogger(__name__)
 
 
 class ModuleManager:
-    def __init__(self):
-        self.internal = {}
-        self.external = {}
+    __slots__ = ["internal", "external"]
 
-    def create(self, name, fname, external=False):
+    def __init__(self) -> None:
+        self.internal: Dict[str, Module] = {}
+        self.external: Dict[str, Module] = {}
+
+    def create(self, name: str, fname: Optional[str], external=False) -> "Module":
         logger.debug("In ModuleManager.create")
         mod = Module(name, fname)
         if external:
@@ -37,7 +40,7 @@ class ModuleManager:
             self.internal[name] = mod
         return mod
 
-    def get(self, name):
+    def get(self, name: str):
         logger.debug("In ModuleManager.get")
         if name in self.internal:
             return self.internal[name]
@@ -52,18 +55,21 @@ class ModuleManager:
         logger.debug("In ModuleManager.get_external_modules")
         return self.external
 
+
 class Module:
-    def __init__(self, name, filename):
+    slots = ["name", "filename", "methods"]
+
+    def __init__(self, name: str, filename: Optional[str]) -> None:
         logger.debug("In Module.__init__")
         self.name = name
         self.filename = filename
-        self.methods = dict()
+        self.methods: Dict[str, Dict[str, Union[str, int, None]]] = {}
 
-    def get_name(self):
+    def get_name(self) -> str:
         logger.debug("In Module.get_name")
         return self.name
 
-    def get_filename(self):
+    def get_filename(self) -> Optional[str]:
         logger.debug("In Module.get_filename")
         return self.filename
 
@@ -71,10 +77,9 @@ class Module:
         logger.debug("In Module.get_methods")
         return self.methods
 
-    def add_method(self, method, first=None, last=None):
+    def add_method(
+        self, method: str, first: Optional[int] = None, last: Optional[int] = None
+    ):
         logger.debug("In Module.add_method")
         if not self.methods.get(method, None):
-            self.methods[method] = dict(
-                    name=method,
-                    first=first,
-                    last=last)
+            self.methods[method] = {"name": method, "first": first, "last": last}

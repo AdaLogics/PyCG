@@ -19,9 +19,11 @@
 # under the License.
 #
 from base import TestBase
-from pycg.machinery.definitions import Definition, DefinitionManager, DefinitionError
-from pycg.machinery.pointers import LiteralPointer
+
 from pycg import utils
+from pycg.machinery.definitions import Definition, DefinitionError, DefinitionManager
+from pycg.machinery.pointers import LiteralPointer
+
 
 class DefinitionManagerTest(TestBase):
     def test_create(self):

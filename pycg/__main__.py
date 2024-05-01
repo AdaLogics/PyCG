@@ -1,13 +1,14 @@
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
 
-from pycg.pycg import CallGraphGenerator
 from pycg import formats
+from pycg.pycg import CallGraphGenerator
 from pycg.utils.constants import CALL_GRAPH_OP, KEY_ERR_OP
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("entry_point",
         nargs="*",

@@ -18,22 +18,25 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-import sys
 import ast
-import os
-import importlib.abc
 import copy
+import importlib
+import importlib.abc
 import logging
-
+import os
+import sys
+from typing import Optional, Dict, Union
 from pycg import utils
 
 logger = logging.getLogger(__name__)
+
 
 def get_custom_loader(ig_obj):
     """
     Closure which returns a custom loader
     that modifies an ImportManager object
     """
+
     class CustomLoader(importlib.abc.SourceLoader):
         def __init__(self, fullname, path):
             self.fullname = fullname
@@ -59,29 +62,30 @@ def get_custom_loader(ig_obj):
 
     return CustomLoader
 
-class ImportManager(object):
-    def __init__(self):
+
+class ImportManager:
+    def __init__(self) -> None:
         print("I1")
-        self.import_graph = dict()
+        self.import_graph: Dict[str, Dict[str, Union[str, set]]] = {}
         self.current_module = ""
         self.input_file = ""
-        self.mod_dir = None
+        self.mod_dir: Optional[str] = None
         self.old_path_hooks = None
         self.old_path = None
 
-    def set_pkg(self, input_pkg):
+    def set_pkg(self, input_pkg: str):
         logger.debug("In ImportManager.set_pkg")
         self.mod_dir = input_pkg
 
-    def get_mod_dir(self):
+    def get_mod_dir(self) -> Optional[str]:
         logger.debug("In ImportManager.get_mod_dir")
         return self.mod_dir
 
-    def get_node(self, name):
+    def get_node(self, name: str):
         if name in self.import_graph:
             return self.import_graph[name]
 
-    def create_node(self, name):
+    def create_node(self, name: str):
         logger.debug("In ImportManager.create_node")
         if not name or not isinstance(name, str):
             raise ImportManagerError("Invalid node name")
@@ -92,7 +96,7 @@ class ImportManager(object):
         self.import_graph[name] = {"filename": "", "imports": set()}
         return self.import_graph[name]
 
-    def create_edge(self, dest):
+    def create_edge(self, dest: str):
         logger.debug("In ImportManager.create_edge")
         if not dest or not isinstance(dest, str):
             raise ImportManagerError("Invalid node name")
@@ -102,7 +106,6 @@ class ImportManager(object):
             raise ImportManagerError("Can't add edge to a non existing node")
 
         node["imports"].add(dest)
-
 
     def _clear_caches(self):
         logger.debug("In ImportManager._clear_caches")
@@ -115,21 +118,23 @@ class ImportManager(object):
                 del sys.modules[name]
         logger.debug("Exit ImportManager._clear_caches")
 
-    def _get_module_path(self):
+    def _get_module_path(self) -> str:
         logger.debug("In ImportManager._get_module_path")
-        return self.current_module 
+        return self.current_module
 
-    def set_current_mod(self, name, fname):
+    def set_current_mod(self, name: str, fname: str) -> None:
         logger.debug("In ImportManager.set_current_mod")
         self.current_module = name
         self.input_file = os.path.abspath(fname)
 
-    def get_filepath(self, modname):
+    def get_filepath(self, modname: str) -> Optional[str]:
         logger.debug("In ImportManager.get_filepath")
         if modname in self.import_graph:
             return self.import_graph[modname]["filename"]
+        else:
+            return None
 
-    def set_filepath(self, node_name, filename):
+    def set_filepath(self, node_name: str, filename: str) -> None:
         logger.debug("In ImportManager.set_filepath")
         if not filename or not isinstance(filename, str):
             raise ImportManagerError("Invalid node name")
@@ -140,14 +145,13 @@ class ImportManager(object):
 
         node["filename"] = os.path.abspath(filename)
 
-    def get_imports(self, modname):
+    def get_imports(self, modname: str):
         logger.debug("In ImportManager.get_imports")
         if not modname in self.import_graph:
             return []
         return self.import_graph[modname]["imports"]
 
-
-    def _is_init_file(self):
+    def _is_init_file(self) -> bool:
         logger.debug("In ImportManager._is_init_file")
         return self.input_file.endswith("__init__.py")
 
@@ -233,7 +237,7 @@ class ImportManager(object):
         logger.debug("In ImportManager.get_import_graph")
         return self.import_graph
 
-    def install_hooks(self):
+    def install_hooks(self) -> None:
         logger.debug("In ImportManager.install_hooks")
         loader = get_custom_loader(self)
         self.old_path_hooks = copy.deepcopy(sys.path_hooks)
@@ -246,13 +250,14 @@ class ImportManager(object):
         self._clear_caches()
         logger.debug("Exit ImportManager.install_hooks")
 
-    def remove_hooks(self):
+    def remove_hooks(self) -> None:
         logger.debug("In ImportManager.remove_hooks")
         sys.path_hooks = self.old_path_hooks
         sys.path = self.old_path
 
         self._clear_caches()
         logger.debug("Exit ImportManager.remove_hooks")
+
 
 class ImportManagerError(Exception):
     pass

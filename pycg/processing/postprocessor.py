@@ -20,19 +20,33 @@
 #
 import ast
 import logging
+from typing import Optional, Set
 
-from pycg.processing.base import ProcessingBase
-from pycg.machinery.definitions import Definition
 from pycg import utils
+from pycg.machinery.classes import ClassManager
+from pycg.machinery.definitions import Definition, DefinitionManager
+from pycg.machinery.imports import ImportManager
+from pycg.machinery.scopes import ScopeManager
+from pycg.machinery.modules import ModuleManager
+from pycg.processing.base import ProcessingBase
 
 logger = logging.getLogger(__name__)
 
 
 class PostProcessor(ProcessingBase):
-    def __init__(self, input_file, modname, import_manager,
-            scope_manager, def_manager, class_manager, module_manager, modules_analyzed=None):
-        logger.debug("In PreProcessor.__init__: mod_name: %s; analyzed_modules: %s"
-            %(modname, str(modules_analyzed))
+    def __init__(
+        self,
+        input_file: str,
+        modname: str,
+        import_manager: ImportManager,
+        scope_manager: ScopeManager,
+        def_manager: DefinitionManager,
+        class_manager: ClassManager,
+        module_manager: ModuleManager,
+        modules_analyzed: Set[str],
+    ) -> None:
+        logger.debug(
+            f"In PreProcessor.__init__: mod_name: {modname}; analyzed_modules: {str(modules_analyzed)}"
         )
         super().__init__(input_file, modname, modules_analyzed)
         self.import_manager = import_manager
@@ -50,8 +64,8 @@ class PostProcessor(ProcessingBase):
         super().visit_Lambda(node, lambda_name)
         logger.debug("Exit PreProcessor.visit_Lambda")
 
-    def visit_Call(self, node):
-        logger.debug("In PreProcessor.visit_Call")
+    def visit_Call(self, node: ast.Call):
+        # logger.debug("In PreProcessor.visit_Call")
         self.visit(node.func)
 
         names = self.retrieve_call_names(node)
@@ -90,12 +104,12 @@ class PostProcessor(ProcessingBase):
         self._visit_assign(node.value, node.targets)
         logger.debug("Exit PreProcessor.visit_Assign")
 
-    def visit_Return(self, node):
+    def visit_Return(self, node: ast.Return):
         logger.debug("In PreProcessor.visit_Return")
         self._visit_return(node)
         logger.debug("Exit PreProcessor.visit_Return")
 
-    def visit_Yield(self, node):
+    def visit_Yield(self, node: ast.Yield):
         logger.debug("In PreProcessor.visit_Yield")
         self._visit_return(node)
         logger.debug("Exit PreProcessor.visit_Yield")
@@ -127,16 +141,6 @@ class PostProcessor(ProcessingBase):
 
         super().visit_For(node)
         logger.debug("Exit PreProcessor.visit_For")
-
-    def visit_Return(self, node):
-        logger.debug("In PreProcessor.visit_Return")
-        self._visit_return(node)
-        logger.debug("Exit PreProcessor.visit_Return")
-
-    def visit_Yield(self, node):
-        logger.debug("In PreProcessor.visit_Yield")
-        self._visit_return(node)
-        logger.debug("Exit PreProcessor.visit_Yield")
 
     def visit_AsyncFunctionDef(self, node):
         logger.debug("In PreProcessor.visit_AsyncFunctionDef")
@@ -288,7 +292,7 @@ class PostProcessor(ProcessingBase):
         self.name_stack.pop()
         logger.debug("Exit PreProcessor.visit_List")
 
-    def visit_Dict(self, node):
+    def visit_Dict(self, node: ast.Dict):
         logger.debug("In PreProcessor.visit_Dict")
         # 1. create a scope using a counter
         # 2. Iterate keys and add them as children of the scope
@@ -375,14 +379,14 @@ class PostProcessor(ProcessingBase):
 
         logger.debug("Exit PreProcessor.update_parent_classes")
 
-    def analyze_submodules(self):
+    def analyze_submodules(self) -> None:
         logger.debug("In PreProcessor.analyze_submodules")
         super().analyze_submodules(PostProcessor, self.import_manager,
                 self.scope_manager, self.def_manager, self.class_manager,
                 self.module_manager, modules_analyzed=self.get_modules_analyzed())
         logger.debug("Exit PreProcessor.analyze_submodules")
 
-    def analyze(self):
+    def analyze(self) -> None:
         logger.debug("In PreProcessor.analyze")
         try:
             self.visit(ast.parse(self.contents, self.filename))

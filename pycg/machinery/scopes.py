@@ -19,18 +19,25 @@
 # under the License.
 #
 import symtable
-from pycg import utils
+from typing import Dict, Optional
 
-class ScopeManager(object):
+from pycg import utils
+from pycg.machinery.definitions import Definition
+
+
+class ScopeManager:
     """Manages the scope entries"""
 
-    def __init__(self):
-        self.scopes = {}
+    __slots__ = ["scopes"]
 
-    def handle_module(self, modulename, filename, contents):
+    def __init__(self) -> None:
+        self.scopes: Dict[str, "ScopeItem"] = {}
+
+    def handle_module(self, modulename: str, filename: str, contents: str):
         functions = []
         classes = []
-        def process(namespace, parent, table):
+
+        def process(namespace: str, parent, table: symtable.SymbolTable):
             name = table.get_name() if table.get_name() != 'top' else ''
             if name:
                 fullns = utils.join_ns(namespace, name)
@@ -51,12 +58,12 @@ class ScopeManager(object):
         process(modulename, None, symtable.symtable(contents, filename, compile_type="exec"))
         return {"functions": functions, "classes": classes}
 
-    def handle_assign(self, ns, target, defi):
+    def handle_assign(self, ns: str, target: str, defi: Definition):
         scope = self.get_scope(ns)
         if scope:
             scope.add_def(target, defi)
 
-    def get_def(self, current_ns, var_name):
+    def get_def(self, current_ns: str, var_name: str):
         current_scope = self.get_scope(current_ns)
         while current_scope:
             defi = current_scope.get_def(var_name)
@@ -64,11 +71,15 @@ class ScopeManager(object):
                 return defi
             current_scope = current_scope.parent
 
-    def get_scope(self, namespace):
+    def get_scope(self, namespace: str) -> Optional["ScopeItem"]:
         if namespace in self.get_scopes():
             return self.get_scopes()[namespace]
+        else:
+            return None
 
-    def create_scope(self, namespace, parent):
+    def create_scope(
+        self, namespace: str, parent: Optional["ScopeItem"]
+    ) -> "ScopeItem":
         if not namespace in self.scopes:
             sc = ScopeItem(namespace, parent)
             self.scopes[namespace] = sc
@@ -77,8 +88,18 @@ class ScopeManager(object):
     def get_scopes(self):
         return self.scopes
 
-class ScopeItem(object):
-    def __init__(self, fullns, parent):
+
+class ScopeItem:
+    __slots__ = [
+        "parent",
+        "defs",
+        "lambda_counter",
+        "dict_counter",
+        "list_counter",
+        "fullns",
+    ]
+
+    def __init__(self, fullns: str, parent: Optional["ScopeItem"]) -> None:
         if parent and not isinstance(parent, ScopeItem):
             raise ScopeError("Parent must be a ScopeItem instance")
 
@@ -86,7 +107,7 @@ class ScopeItem(object):
             raise ScopeError("Namespace should be a string")
 
         self.parent = parent
-        self.defs = {}
+        self.defs: Dict[str, Definition] = {}
         self.lambda_counter = 0
         self.dict_counter = 0
         self.list_counter = 0
@@ -95,49 +116,51 @@ class ScopeItem(object):
     def get_ns(self):
         return self.fullns
 
-    def get_defs(self):
+    def get_defs(self) -> Dict[str, Definition]:
         return self.defs
 
-    def get_def(self, name):
-        defs = self.get_defs()
-        if name in defs:
-            return defs[name]
+    def get_def(self, name: str) -> Optional[Definition]:
+        if name in self.defs:
+            return self.defs[name]
+        else:
+            return None
 
-    def get_lambda_counter(self):
+    def get_lambda_counter(self) -> int:
         return self.lambda_counter
 
-    def get_dict_counter(self):
+    def get_dict_counter(self) -> int:
         return self.dict_counter
 
-    def get_list_counter(self):
+    def get_list_counter(self) -> int:
         return self.list_counter
 
-    def inc_lambda_counter(self, val=1):
+    def inc_lambda_counter(self, val=1) -> int:
         self.lambda_counter += val
         return self.lambda_counter
 
-    def inc_dict_counter(self, val=1):
+    def inc_dict_counter(self, val=1) -> int:
         self.dict_counter += val
         return self.dict_counter
 
-    def inc_list_counter(self, val=1):
+    def inc_list_counter(self, val=1) -> int:
         self.list_counter += val
         return self.list_counter
 
-    def reset_counters(self):
+    def reset_counters(self) -> None:
         self.lambda_counter = 0
         self.dict_counter = 0
         self.list_counter = 0
 
-    def add_def(self, name, defi):
+    def add_def(self, name: str, defi: Definition) -> None:
         self.defs[name] = defi
 
-    def merge_def(self, name, to_merge):
+    def merge_def(self, name: str, to_merge: Definition):
         if not name in self.defs:
             self.defs[name] = to_merge
             return
 
         self.defs[name].merge_points_to(to_merge.get_points_to())
+
 
 class ScopeError(Exception):
     pass

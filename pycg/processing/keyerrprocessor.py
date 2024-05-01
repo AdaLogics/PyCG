@@ -18,20 +18,36 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-import os
 import ast
-import re
 import logging
+import os
+import re
+
+from typing import Optional, Set
 
 from pycg import utils
+from pycg.machinery.key_err import KeyErrors
+from pycg.machinery.imports import ImportManager
+from pycg.machinery.scopes import ScopeManager
+from pycg.machinery.definitions import DefinitionManager
+from pycg.machinery.classes import ClassManager
 from pycg.processing.base import ProcessingBase
 
 logger = logging.getLogger(__name__)
 
 
 class KeyErrProcessor(ProcessingBase):
-    def __init__(self, filename, modname, import_manager,
-            scope_manager, def_manager, class_manager, key_errs, modules_analyzed=None):
+    def __init__(
+        self,
+        filename: str,
+        modname: str,
+        import_manager: ImportManager,
+        scope_manager: ScopeManager,
+        def_manager: DefinitionManager,
+        class_manager: ClassManager,
+        key_errs: KeyErrors,
+        modules_analyzed: Set[str],
+    ) -> None:
         logger.debug(
             "In KeyErrProcessor.__init..: filename: %s; mod_name: %s; analyzed module: %s"
             % (filename, modname, modules_analyzed)
@@ -78,14 +94,14 @@ class KeyErrProcessor(ProcessingBase):
         logger.debug("Exit KeyErrProcessor.is_subscriptable")
         return False
 
-    def analyze_submodules(self):
+    def analyze_submodules(self) -> None:
         logger.debug("In KeyErrProcessor.analyze_submodules")
         super().analyze_submodules(KeyErrProcessor, self.import_manager,
                 self.scope_manager, self.def_manager, self.class_manager,
                 self.key_errs, modules_analyzed=self.get_modules_analyzed())
         logger.debug("Exit KeyErrProcessor.analyze_submodules")
 
-    def analyze(self):
+    def analyze(self) -> None:
         logger.debug("In KeyErrProcessor.analyze")
         self.visit(ast.parse(self.contents, self.filename))
         self.analyze_submodules()

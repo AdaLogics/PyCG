@@ -18,17 +18,20 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-class KeyErrors(object):
-    def __init__(self):
-        self.key_errs = []
 
-    def add(self, filename, lineno, namespace, key):
-        self.key_errs.append({
-            "filename": filename,
-            "lineno": lineno,
-            "namespace": namespace,
-            "key": key
-        })
+from typing import Dict, List
 
-    def get(self):
+
+class KeyErrors:
+    __slots__ = ["key_errs"]
+
+    def __init__(self) -> None:
+        self.key_errs: List[Dict] = []
+
+    def add(self, filename: str, lineno, namespace, key):
+        self.key_errs.append(
+            {"filename": filename, "lineno": lineno, "namespace": namespace, "key": key}
+        )
+
+    def get(self) -> List[Dict]:
         return self.key_errs

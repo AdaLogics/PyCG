@@ -19,21 +19,24 @@
 # under the License.
 #
 import logging
+from typing import Dict, Set, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
-class CallGraph(object):
-    def __init__(self):
-        self.cg = {}
+class CallGraph:
+    cg: Dict[str, set]
+
+    def __init__(self) -> None:
+        self.cg: Dict[str, Set[str]] = {}
         self.cg_extended = {}
-        self.modnames = {}
-        self.ep = None
-        self.entrypoints = []
+        self.modnames: Dict[str, str] = {}
+        self.ep: Optional[str] = None
+        self.entrypoints: List[Tuple[str, str]] = []
 
-        self.function_line_numbers = dict()
+        self.function_line_numbers: Dict[str, Set[int]] = {}
 
-    def add_node(self, name, modname=""):
+    def add_node(self, name: str, modname: str = ""):
         if not isinstance(name, str):
             raise CallGraphError("Only string node names allowed")
         if not name:
@@ -65,7 +68,9 @@ class CallGraph(object):
             #else:
                 #logger.info("AN7")
 
-    def add_edge(self, src, dest, lineno=-1, mod="", ext_mod=""):
+    def add_edge(
+        self, src: str, dest: str, lineno: int = -1, mod: str = "", ext_mod: str = ""
+    ):
         self.add_node(src, mod)
         self.add_node(dest)
         self.cg[src].add(dest)
@@ -81,23 +86,23 @@ class CallGraph(object):
         )
         #logger.debug(self.cg_extended[src])
 
-    def get(self):
+    def get(self) -> Dict[str, Set[str]]:
         return self.cg
 
-    def get_extended(self):
+    def get_extended(self) -> Dict:
         return self.cg_extended
 
-    def get_edges(self):
+    def get_edges(self) -> List[List[str]]:
         output = []
         for src in self.cg:
             for dst in self.cg[src]:
                 output.append([src, dst])
         return output
 
-    def get_modules(self):
+    def get_modules(self) -> Dict[str, str]:
         return self.modnames
 
-    def add_entrypoint(self, ep, modname=""):
+    def add_entrypoint(self, ep: str, modname: str = "") -> None:
         self.ep = ep
         self.ep_mod = modname
         self.entrypoints.append((ep, modname))

@@ -18,11 +18,13 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from base import TestBase
-from mock import patch
 import symtable
+from unittest.mock import patch
 
-from pycg.machinery.scopes import ScopeManager, ScopeItem, ScopeError
+from base import TestBase
+
+from pycg.machinery.scopes import ScopeError, ScopeItem, ScopeManager
+
 
 class ScopeManagerTest(TestBase):
     def test_handle_module(self):
@@ -133,6 +135,7 @@ class ScopeManagerTest(TestBase):
         self.assertEqual(sm.get_scope("ns.ns2"), st2)
         # otherwise None should be returned
         self.assertEqual(sm.get_scope("notexist"), None)
+
 
 class ScopeItemTest(TestBase):
     def test_setup(self):

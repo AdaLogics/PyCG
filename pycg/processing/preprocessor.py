@@ -19,21 +19,32 @@
 # under the License.
 #
 import ast
-import os
-import importlib
 import logging
+from typing import Set, Optional
 
-from pycg.machinery.definitions import DefinitionManager, Definition
 from pycg import utils
+from pycg.machinery.definitions import Definition, DefinitionManager
+from pycg.machinery.modules import ModuleManager
+from pycg.machinery.imports import ImportManager
+from pycg.machinery.scopes import ScopeManager
+from pycg.machinery.classes import ClassManager
 from pycg.processing.base import ProcessingBase
 
 logger = logging.getLogger(__name__)
 
 
 class PreProcessor(ProcessingBase):
-    def __init__(self, filename, modname,
-            import_manager, scope_manager, def_manager, class_manager,
-            module_manager, modules_analyzed=None):
+    def __init__(
+        self,
+        filename: str,
+        modname: str,
+        import_manager: ImportManager,
+        scope_manager: ScopeManager,
+        def_manager: DefinitionManager,
+        class_manager: ClassManager,
+        module_manager: ModuleManager,
+        modules_analyzed: Set[str],
+    ) -> None:
         logger.debug(
             "In PreProcessor.__init__: filename: %s; mod_name: %s; analyzed_modules: %s"
             %(filename, modname, str(modules_analyzed))
@@ -45,7 +56,7 @@ class PreProcessor(ProcessingBase):
 
         self.import_manager = import_manager
         self.scope_manager = scope_manager
-        self.def_manager = def_manager
+        self.def_manager: DefinitionManager = def_manager
         self.class_manager = class_manager
         self.module_manager = module_manager
         logger.debug("Exit PreProcessor.__init__")
@@ -60,9 +71,9 @@ class PreProcessor(ProcessingBase):
 
             self.visit(d)
             try:
-              defaults[node.args.args[cnt].arg] = self.decode_node(d)
+                defaults[node.args.args[cnt].arg] = self.decode_node(d)
             except IndexError:
-              continue
+                continue
 
         start = len(node.args.kwonlyargs) - len(node.args.kw_defaults)
         for cnt, d in enumerate(node.args.kw_defaults, start=start):
@@ -74,7 +85,7 @@ class PreProcessor(ProcessingBase):
         logger.debug("Exit PreProcessor._get_fun_defaults")
         return defaults
 
-    def analyze_submodule(self, modname):
+    def analyze_submodule(self, modname: str) -> None:
         logger.debug("In PreProcessor.analyze_submodule %s" % (modname))
         super().analyze_submodule(PreProcessor, modname,
             self.import_manager, self.scope_manager, self.def_manager, self.class_manager,
@@ -83,6 +94,7 @@ class PreProcessor(ProcessingBase):
 
     def visit_Module(self, node):
         logger.debug("In PreProcessor.visit_Module")
+
         def iterate_mod_items(items, const):
             logger.debug("In PreProcessor.visit_Module.iterate_mod_items")
             for item in items:
@@ -133,7 +145,7 @@ class PreProcessor(ProcessingBase):
         super().visit_Module(node)
         logger.debug("Exit PreProcessor.visit_Module")
 
-    def visit_Import(self, node, prefix='', level=0):
+    def visit_Import(self, node: ast.Import, prefix="", level=0):
         """
         For imports of the form
             `from something import anything`
@@ -144,7 +156,7 @@ class PreProcessor(ProcessingBase):
         of parent directories (e.g. in this case level=1)
         """
         logger.debug("In PreProcessor.visit_Import")
-        logger.debug("%s"%(ast.dump(node, indent=4)))
+        # logger.debug("%s"%(ast.dump(node, indent=4)))
         logger.debug("--------------------")
 
         def handle_src_name(name):
@@ -158,6 +170,7 @@ class PreProcessor(ProcessingBase):
 
         def handle_scopes(imp_name, tgt_name, modname):
             logger.debug("In PreProcessor.visit_Import.handle_scopes")
+
             def create_def(scope, name, imported_def):
                 logger.debug("In PreProcessor.visit_Import.handle_scopes.create_def")
                 if not name in scope.get_defs():
@@ -268,7 +281,7 @@ class PreProcessor(ProcessingBase):
         logger.debug("Exit PreProcessor._get_last_line")
         return last
 
-    def _handle_function_def(self, node, fn_name):
+    def _handle_function_def(self, node, fn_name: str):
         logger.debug("In PreProcessor._handle_function_def")
         current_def = self.def_manager.get(self.current_ns)
 
@@ -420,7 +433,7 @@ class PreProcessor(ProcessingBase):
 
         logger.debug("Exit PreProcessor.visit_Lambda")
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node: ast.ClassDef):
         # create a definition for the class (node.name)
         logger.debug("In PreProcessor.visit_ClassDef")
         cls_def = self.def_manager.handle_class_def(self.current_ns, node.name)
@@ -438,12 +451,11 @@ class PreProcessor(ProcessingBase):
                 if isinstance(nam, ast.Name):
                     self.class_manager.add_inheritance(cls_def.get_ns(), nam.id)
 
-
         super().visit_ClassDef(node)
 
         logger.debug("Exit PreProcessor.visit_Lambda")
 
-    def analyze(self):
+    def analyze(self) -> None:
         logger.debug("In PreProcessor.analyze")
         if not self.import_manager.get_node(self.modname):
             self.import_manager.create_node(self.modname)

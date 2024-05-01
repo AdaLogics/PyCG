@@ -18,13 +18,15 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-import sys
 import copy
-import mock
 import os
+import sys
+from unittest import mock
 
 from base import TestBase
+
 from pycg.machinery.imports import ImportManager, ImportManagerError, get_custom_loader
+
 
 class ImportsTest(TestBase):
     def test_create_node(self):
@@ -96,7 +98,6 @@ class ImportsTest(TestBase):
 
         with self.assertRaises(ImportManagerError):
             im.create_edge(1)
-
 
     def test_hooks(self):
         input_file = "somedir/somedir/input_file.py"

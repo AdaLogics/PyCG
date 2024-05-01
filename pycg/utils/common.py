@@ -19,24 +19,28 @@
 # under the License.
 #
 import os
+from typing import Optional
 
-def get_lambda_name(counter):
+
+def get_lambda_name(counter) -> str:
     return "<lambda{}>".format(counter)
 
-def get_dict_name(counter):
+
+def get_dict_name(counter) -> str:
     return "<dict{}>".format(counter)
 
-def get_list_name(counter):
+
+def get_list_name(counter) -> str:
     return "<list{}>".format(counter)
 
-def get_int_name(counter):
+
+def get_int_name(counter) -> str:
     return "<int{}>".format(counter)
 
-def join_ns(*args):
-    for arg in args:
-        if arg == None:
-            return
-    return ".".join([arg for arg in args])
 
-def to_mod_name(name, package=None):
+def join_ns(*args: str) -> str:
+    return ".".join(args)
+
+
+def to_mod_name(name, package=None) -> str:
     return os.path.splitext(name)[0].replace("/", ".")

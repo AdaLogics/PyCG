@@ -20,17 +20,19 @@
 #
 import logging
 
-from pycg.machinery.pointers import NamePointer, LiteralPointer
 from pycg import utils
+from pycg.machinery.pointers import LiteralPointer, NamePointer
 
 logger = logging.getLogger(__name__)
 
+from typing import Dict, Set, Optional
 
-class DefinitionManager(object):
-    def __init__(self):
-        self.defs = {}
 
-    def create(self, ns, def_type):
+class DefinitionManager:
+    def __init__(self) -> None:
+        self.defs: Dict[str, Definition] = {}
+
+    def create(self, ns: str, def_type) -> "Definition":
         if not ns or not isinstance(ns, str):
             raise DefinitionError("Invalid namespace argument")
         if not def_type in Definition.types:
@@ -41,7 +43,7 @@ class DefinitionManager(object):
         self.defs[ns] = Definition(ns, def_type)
         return self.defs[ns]
 
-    def assign(self, ns, defi):
+    def assign(self, ns: str, defi: "Definition"):
         self.defs[ns] = Definition(ns, defi.get_type())
         self.defs[ns].merge(defi)
 
@@ -50,18 +52,21 @@ class DefinitionManager(object):
             return_ns = utils.join_ns(ns, utils.constants.RETURN_NAME)
             self.defs[return_ns] = Definition(return_ns, utils.constants.NAME_DEF)
             self.defs[return_ns].get_name_pointer().add(
-                utils.join_ns(defi.get_ns(), utils.constants.RETURN_NAME))
+                utils.join_ns(defi.get_ns(), utils.constants.RETURN_NAME)
+            )
 
         return self.defs[ns]
 
-    def get(self, ns):
+    def get(self, ns) -> Optional["Definition"]:
         if ns in self.defs:
             return self.defs[ns]
+        else:
+            return None
 
-    def get_defs(self):
+    def get_defs(self) -> Dict[str, "Definition"]:
         return self.defs
 
-    def handle_function_def(self, parent_ns, fn_name):
+    def handle_function_def(self, parent_ns: str, fn_name: str):
         full_ns = utils.join_ns(parent_ns, fn_name)
         defi = self.get(full_ns)
         if not defi:
@@ -82,9 +87,10 @@ class DefinitionManager(object):
 
         return defi
 
-    def transitive_closure(self):
-        closured = {}
-        def dfs(defi):
+    def transitive_closure(self) -> Dict[str, Set[str]]:
+        closured: Dict[str, Set[str]] = {}
+
+        def dfs(defi: Definition):
             # bottom
             if not closured.get(defi.get_ns(), None) == None:
                 return closured[defi.get_ns()]
@@ -108,7 +114,7 @@ class DefinitionManager(object):
             return closured[defi.get_ns()]
 
         for ns, current_def in self.defs.items():
-            if closured.get(current_def, None) == None:
+            if closured.get(current_def.get_ns(), None) == None:
                 dfs(current_def)
 
         return closured
@@ -116,7 +122,7 @@ class DefinitionManager(object):
     def complete_definitions(self):
         # THE MOST expensive part of this tool's process
         # TODO: IMPROVE COMPLEXITY
-        def update_pointsto_args(pointsto_args, arg, name):
+        def update_pointsto_args(pointsto_args, arg, name: str):
             changed_something = False
             if arg == pointsto_args:
                 return False
@@ -190,7 +196,7 @@ class DefinitionManager(object):
 
 
 class Definition:
-    __slots__ = ['fullns', 'points_to', 'def_type', 'decorator_names']
+    __slots__ = ["fullns", "name_pointer", "lit_pointer", "def_type", "decorator_names"]
     types = [
         utils.constants.FUN_DEF,
         utils.constants.MOD_DEF,
@@ -199,50 +205,49 @@ class Definition:
         utils.constants.EXT_DEF,
     ]
 
-    def __init__(self, fullns, def_type):
+    def __init__(self, fullns: str, def_type) -> None:
         self.fullns = fullns
-        self.points_to = {
-            "lit": LiteralPointer(),
-            "name": NamePointer()
-        }
+        self.name_pointer = NamePointer()
+        self.lit_pointer = LiteralPointer()
         self.def_type = def_type
 
     def get_type(self):
         return self.def_type
 
-    def is_function_def(self):
+    def is_function_def(self) -> bool:
         return self.def_type == utils.constants.FUN_DEF
 
-    def is_module_def(self):
+    def is_module_def(self) -> bool:
         return self.def_type == utils.constants.MOD_DEF
 
-    def is_name_def(self):
+    def is_name_def(self) -> bool:
         return self.def_type == utils.constants.NAME_DEF
 
-    def is_class_def(self):
+    def is_class_def(self) -> bool:
         return self.def_type == utils.constants.CLS_DEF
 
-    def is_ext_def(self):
+    def is_ext_def(self) -> bool:
         return self.def_type == utils.constants.EXT_DEF
 
-    def is_callable(self):
-        return (self.is_function_def() or self.is_ext_def())
+    def is_callable(self) -> bool:
+        return self.is_function_def() or self.is_ext_def()
 
-    def get_lit_pointer(self):
-        return self.points_to["lit"]
+    def get_lit_pointer(self) -> LiteralPointer:
+        return self.lit_pointer
 
-    def get_name_pointer(self):
-        return self.points_to["name"]
+    def get_name_pointer(self) -> NamePointer:
+        return self.name_pointer
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.fullns.rpartition(".")[-1]
 
-    def get_ns(self):
+    def get_ns(self) -> str:
         return self.fullns
 
-    def merge(self, to_merge):
-        for name, pointer in to_merge.points_to.items():
-            self.points_to[name].merge(pointer)
+    def merge(self, to_merge: "Definition") -> None:
+        self.name_pointer.merge(to_merge.name_pointer)
+        self.lit_pointer.merge(to_merge.lit_pointer)
+
 
 class DefinitionError(Exception):
     pass

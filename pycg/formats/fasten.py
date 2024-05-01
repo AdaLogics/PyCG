@@ -22,12 +22,14 @@ import os
 
 from pkg_resources import Requirement
 
-from .base import BaseFormatter
-
 from pycg import utils
 
+from .base import BaseFormatter
+
+from pycg.pycg import CallGraphGenerator
+
 class Fasten(BaseFormatter):
-    def __init__(self, cg_generator, package, product, forge, version, timestamp):
+    def __init__(self, cg_generator: CallGraphGenerator, package, product, forge, version, timestamp) -> None:
         self.cg_generator = cg_generator
         self.internal_mods = self.cg_generator.output_internal_mods() or {}
         self.external_mods = self.cg_generator.output_external_mods() or {}
@@ -42,12 +44,12 @@ class Fasten(BaseFormatter):
         self.version = version
         self.timestamp = timestamp
 
-    def get_unique_and_increment(self):
+    def get_unique_and_increment(self) -> int:
         unique = self.unique
         self.unique += 1
         return unique
 
-    def to_uri(self, modname, name=""):
+    def to_uri(self, modname: str, name: str = "") -> str:
         cleared = name
         if name:
             if name == modname:
@@ -64,7 +66,7 @@ class Fasten(BaseFormatter):
 
         return "/{}/{}{}".format(modname.replace("-", "_"), cleared, suffix)
 
-    def to_external_uri(self, modname, name=""):
+    def to_external_uri(self, modname: str, name: str = "") -> str:
         if modname == utils.constants.BUILTIN_NAME:
             name = name[len(modname)+1:]
             modname = ".builtin"

@@ -18,7 +18,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from .fasten import Fasten
-from .simple import Simple
-from .fuzz import Fuzz
 from .as_graph import AsGraph
+from .fasten import Fasten
+from .fuzz import Fuzz
+from .simple import Simple

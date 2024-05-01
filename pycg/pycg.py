@@ -18,28 +18,36 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-import os
-import ast
 import logging
+import os
+from typing import Dict, Union, Type
 
-from pycg.processing.preprocessor import PreProcessor
-from pycg.processing.postprocessor import PostProcessor
-from pycg.processing.cgprocessor import CallGraphProcessor
-from pycg.processing.keyerrprocessor import KeyErrProcessor
-
-from pycg.machinery.scopes import ScopeManager
+from pycg import utils
+from pycg.machinery.callgraph import CallGraph
+from pycg.machinery.classes import ClassManager
 from pycg.machinery.definitions import DefinitionManager
 from pycg.machinery.imports import ImportManager
-from pycg.machinery.classes import ClassManager
-from pycg.machinery.callgraph import CallGraph
 from pycg.machinery.key_err import KeyErrors
 from pycg.machinery.modules import ModuleManager
-from pycg import utils
+from pycg.machinery.scopes import ScopeManager
+from pycg.processing.cgprocessor import CallGraphProcessor
+from pycg.processing.keyerrprocessor import KeyErrProcessor
+from pycg.processing.postprocessor import PostProcessor
+from pycg.processing.preprocessor import PreProcessor
+from typing import Union, Literal, Set
+
 
 logger = logging.getLogger(__name__)
 
-class CallGraphGenerator(object):
-    def __init__(self, entry_points, package, max_iter, operation):
+
+class CallGraphGenerator:
+    def __init__(
+        self,
+        entry_points,
+        package: str,
+        max_iter: int,
+        operation: Literal["call-graph", "key-error"],
+    ) -> None:
         self.entry_points = entry_points
         self.package = package
         self.state = None
@@ -47,17 +55,17 @@ class CallGraphGenerator(object):
         self.operation = operation
         self.setUp()
 
-    def setUp(self):
-        self.import_manager = ImportManager()
-        self.scope_manager = ScopeManager()
-        self.def_manager = DefinitionManager()
-        self.class_manager = ClassManager()
-        self.module_manager = ModuleManager()
-        self.cg = CallGraph()
-        self.key_errs = KeyErrors()
+    def setUp(self) -> None:
+        self.import_manager: ImportManager = ImportManager()
+        self.scope_manager: ScopeManager = ScopeManager()
+        self.def_manager: DefinitionManager = DefinitionManager()
+        self.class_manager: ClassManager = ClassManager()
+        self.module_manager: ModuleManager = ModuleManager()
+        self.cg: CallGraph = CallGraph()
+        self.key_errs: KeyErrors = KeyErrors()
 
-    def extract_state(self):
-        state = {}
+    def extract_state(self) -> Dict[str, Dict]:
+        state: Dict[str, Dict] = {}
         state["defs"] = {}
         for key, defi in self.def_manager.get_defs().items():
             state["defs"][key] = {
@@ -74,11 +82,11 @@ class CallGraphGenerator(object):
             state["classes"][key] = ch.get_mro().copy()
         return state
 
-    def reset_counters(self):
+    def reset_counters(self) -> None:
         for key, scope in self.scope_manager.get_scopes().items():
             scope.reset_counters()
 
-    def has_converged(self):
+    def has_converged(self) -> bool:
         if not self.state:
             return False
 
@@ -109,7 +117,7 @@ class CallGraphGenerator(object):
 
         return True
 
-    def remove_import_hooks(self):
+    def remove_import_hooks(self) -> None:
         self.import_manager.remove_hooks()
 
     def tearDown(self):
@@ -128,8 +136,19 @@ class CallGraphGenerator(object):
 
         return input_mod
 
-    def do_pass(self, cls, install_hooks=False, *args, **kwargs):
-        modules_analyzed = set()
+    def do_pass(
+        self,
+        cls: Union[
+            Type[PreProcessor],
+            Type[PostProcessor],
+            Type[CallGraphProcessor],
+            Type[KeyErrProcessor],
+        ],
+        install_hooks: bool = False,
+        *args,
+        **kwargs,
+    ):
+        modules_analyzed: Set[str] = set()
         for entry_point in self.entry_points:
             input_pkg = self.package
             input_mod = self._get_mod_name(entry_point, input_pkg)
@@ -164,7 +183,7 @@ class CallGraphGenerator(object):
                     self.remove_import_hooks()
             logger.debug("E5 -- %s -- %s -- %s #"%(input_pkg, input_mod, input_file))
 
-    def analyze(self):
+    def analyze(self) -> None:
         #try:
         # TODO: I REVERSED THE FALSE TO TRUE BECAUSE INSTALLING HOOKS CAUSED A LOT
         # OF ISSUES. THIS SHOULD BE FURTHER INSPECTED.
@@ -208,15 +227,11 @@ class CallGraphGenerator(object):
         else:
             raise Exception("Invalid operation: " + self.operation)
 
-
-    def output(self):
+    def output(self) -> Dict[str, set]:
         return self.cg.get()
 
     def output_key_errs(self):
         return self.key_errs.get()
-
-    def output_edges(self):
-        return self.key_errors
 
     def output_edges(self):
         return self.cg.get_edges()

@@ -18,16 +18,20 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-class ClassManager:
-    def __init__(self):
-        self.names = {}
-        self.inheritance = {}
 
-    def get(self, name):
+from typing import Dict, List
+
+
+class ClassManager:
+    def __init__(self) -> None:
+        self.names: Dict[str, ClassNode] = {}
+        self.inheritance: Dict[str, set] = {}
+
+    def get(self, name: str):
         if name in self.names:
             return self.names[name]
 
-    def create(self, name, module):
+    def create(self, name: str, module: str):
         if not name in self.names:
             cls = ClassNode(name, module)
             self.names[name] = cls
@@ -36,19 +40,20 @@ class ClassManager:
 
         return self.names[name]
 
-    def add_inheritance(self, name, parent):
+    def add_inheritance(self, name: str, parent):
         if name not in self.inheritance:
             return
         self.inheritance[name].add(parent)
 
-    def get_classes(self):
+    def get_classes(self) -> Dict[str, "ClassNode"]:
         return self.names
 
+
 class ClassNode:
-    def __init__(self, ns, module):
+    def __init__(self, ns: str, module: str) -> None:
         self.ns = ns
         self.module = module
-        self.mro = [ns]
+        self.mro: List[str] = [ns]
 
     def add_parent(self, parent):
         if isinstance(parent, str):
@@ -59,23 +64,24 @@ class ClassNode:
                     if self.mro == parent:
                         print("This should never happen and will cause an eternal loop")
                         import sys
+
                         sys.exit(123)
 
                     self.mro.append(item)
         self.fix_mro()
 
-    def fix_mro(self):
+    def fix_mro(self) -> None:
         new_mro = []
         for idx, item in enumerate(self.mro):
-            if self.mro[idx+1:].count(item) > 0:
+            if self.mro[idx + 1 :].count(item) > 0:
                 continue
             new_mro.append(item)
         self.mro = new_mro
 
-    def get_mro(self):
+    def get_mro(self) -> List[str]:
         return self.mro
 
-    def get_module(self):
+    def get_module(self) -> str:
         return self.module
 
     def compute_mro(self):
